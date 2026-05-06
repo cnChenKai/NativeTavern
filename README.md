@@ -8,8 +8,100 @@
   🌐 <a href="https://nativetavern.com/">Native Tavern</a>
 </p>
 
-一个原生跨平台移动应用（iOS/Android），将 SillyTavern 重新实现为高性能原生应用，完全兼容 SillyTavern 数据格式。
+NativeTavern 是一个原生跨平台移动应用，目标是将 SillyTavern 的核心体验重新实现为高性能移动端客户端，并尽可能兼容 SillyTavern 的角色卡、预设、聊天和扩展数据格式。
 
+当前主线实现为 **Flutter + Dart + Rust FFI**，支持 iOS / Android。仓库同时启动 **HarmonyOS 6.1 原生迁移计划**，目标是在鸿蒙 NEXT 设备上提供 ArkTS/ArkUI 原生版本。
+
+---
+
+## 当前状态
+
+| 方向 | 状态 | 说明 |
+|---|---|---|
+| Flutter iOS / Android 主项目 | ✅ 可用 | 当前主要实现，功能完成度较高 |
+| Rust 原生核心 | ✅ 可用 | 用于 PNG 角色卡、CharX 等能力 |
+| HarmonyOS 原生迁移 | 🚧 Alpha 规划中 | 使用 ArkTS/ArkUI、relationalStore、NAPI/Rust |
+| Claude Code 开发指引 | ✅ 已加入 | 见 [`CLAUDE.md`](CLAUDE.md) |
+
+---
+
+## HarmonyOS 6.1 原生迁移计划
+
+鸿蒙 NEXT 移除了 Android 兼容层，Flutter APK 无法作为长期可依赖的鸿蒙分发方案。NativeTavern 因此启动 HarmonyOS 原生迁移工作流。
+
+迁移原则：
+
+- **不破坏现有 Flutter 主项目**：鸿蒙版本作为并行实现推进。
+- **不追求一口气 98% 功能对等**：先做稳定、可真机运行、可上架验证的 Alpha。
+- **优先验证真实用户价值**：先完成角色卡 + BYOK LLM + 流式聊天 + 本地存储的闭环。
+- **本地优先**：角色、聊天、设置和备份尽量本地保存，云同步后置。
+- **AGPL-3.0 开源合规**：延续当前许可证。
+
+### HarmonyOS Alpha 目标
+
+Alpha 阶段完成后，用户应能在鸿蒙设备上完成以下流程：
+
+1. 启动 App。
+2. 在设置页配置 OpenAI-Compatible / OpenRouter / Ollama 类接口。
+3. 导入或创建角色。
+4. 发起对话。
+5. 看到 SSE 流式回复。
+6. 关闭并重新打开 App 后，角色、设置和聊天记录仍然存在。
+7. 导出基础本地备份。
+
+### Alpha 必做功能
+
+- ArkTS/ArkUI 应用壳和基础导航。
+- 首页、对话页、角色页、设置页。
+- OpenAI-Compatible 非流式和流式聊天。
+- OpenRouter 复用 OpenAI-Compatible 路径。
+- Ollama 基础支持。
+- JSON 角色卡导入。
+- PNG V2/V3 角色卡元数据导入。
+- relationalStore 本地数据库。
+- 基础 Markdown 渲染。
+- 流式生成取消、超时、错误提示。
+- 基础本地备份导出。
+
+### Alpha 暂不做
+
+- 完整主题编辑器。
+- TTS / STT。
+- 翻译。
+- 图像生成。
+- Google 登录 / Google Drive 同步。
+- 完整群聊。
+- 完整 World Info 递归和评分。
+- 完整正则脚本、变量系统、扩展生态。
+
+### 推荐鸿蒙目录结构
+
+```text
+harmony/
+├── entry/src/main/
+│   ├── ets/
+│   │   ├── entryability/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   ├── services/
+│   │   │   ├── llm/
+│   │   │   ├── database/
+│   │   │   ├── import/
+│   │   │   └── napi/
+│   │   ├── models/
+│   │   ├── store/
+│   │   └── utils/
+│   ├── cpp/
+│   └── resources/
+├── rust/
+├── oh-package.json5
+├── build-profile.json5
+└── module.json5
+```
+
+Claude Code 的详细执行规范、提示词和阶段计划见 [`CLAUDE.md`](CLAUDE.md)。
+
+---
 
 ## 截图
 
@@ -27,319 +119,273 @@
 
 | 聊天 | 角色 | AI配置 |
 |:---:|:---:|:---:|
-| 实时流式聊天，支持消息操作 | 角色卡片，包含头像和详情 | 多提供商LLM配置 |
+| 实时流式聊天，支持消息操作 | 角色卡片，包含头像和详情 | 多提供商 LLM 配置 |
 
 | AI预设 | 提示词管理 | 世界信息 |
 |:---:|:---:|:---:|
-| 导入SillyTavern预设 | 自定义提示词排序 | 基于关键词的上下文注入 |
+| 导入 SillyTavern 预设 | 自定义提示词排序 | 基于关键词的上下文注入 |
+
+---
 
 ## 功能特性
 
 ### 核心功能 ✅
-- 📱 **原生移动应用** - 使用 Flutter 构建，支持 iOS 和 Android
-- ⚡ **高性能** - 针对移动设备优化
-- 🤖 **多提供商 LLM 支持** - OpenAI、Claude、OpenRouter、Gemini、Ollama、KoboldCpp
-- 📦 **完全兼容 ST** - 导入/导出 PNG 卡片、CharX、JSON
-- 💬 **流式响应** - 所有提供商的实时 SSE 流式传输
+
+- 📱 **原生移动应用**：当前 Flutter 版本支持 iOS 和 Android。
+- ⚡ **移动端优化**：围绕手机和平板使用体验设计。
+- 🤖 **多提供商 LLM 支持**：OpenAI、Claude、OpenRouter、Gemini、Ollama、KoboldCpp 等。
+- 📦 **SillyTavern 数据兼容**：支持 PNG 角色卡、CharX、JSON、ST 预设等格式。
+- 💬 **实时流式响应**：支持主流 Provider 的 SSE 流式传输。
 
 ### 角色管理 ✅
-- 📥 **导入格式** - PNG V2/V3、CharX（V3规范）、JSON
-- 📤 **导出格式** - PNG V3、带资源的 CharX、JSON
-- ✏️ **角色编辑器** - 创建/编辑角色的所有字段
-- 🖼️ **头像支持** - 自定义头像，支持图片选择器
-- 📚 **嵌入式知识库** - 完整的 CharX 知识库支持
+
+- 📥 导入 PNG V2/V3、CharX、JSON。
+- 📤 导出 PNG V3、CharX、JSON。
+- ✏️ 创建和编辑角色字段。
+- 🖼️ 自定义头像。
+- 📚 CharX 嵌入式知识库支持。
 
 ### 聊天功能 ✅
-- 💬 **消息操作** - 编辑、删除、重新生成、在备选项之间滑动
-- 👥 **群聊** - 多角色对话，5种响应模式
-- 🔖 **书签** - 创建检查点和分支对话
-- 📝 **作者注释** - 可配置深度的注入
-- 🎭 **人设** - 用户档案管理，包含描述
-- 📄 **HTML/Markdown** - 聊天消息富文本渲染
 
-### 世界信息/知识库 ✅
-- 🌍 **关键词匹配** - 基于触发器的上下文注入
-- 📍 **多个位置** - 系统提示前/后、角色定义、示例
-- 🔄 **递归支持** - 嵌套关键词扫描
-- 📊 **分组评分** - 基于优先级的条目选择
+- 💬 编辑、删除、重新生成消息。
+- 🔀 支持滑动备选回复。
+- 👥 群聊与多角色对话。
+- 🔖 书签、检查点和分支对话。
+- 📝 作者注释。
+- 🎭 用户人设。
+- 📄 HTML / Markdown 富文本渲染。
+
+### 世界信息 / 知识库 ✅
+
+- 🌍 关键词触发。
+- 📍 多种注入位置。
+- 🔄 递归扫描。
+- 📊 优先级和分组评分。
 
 ### 提示词管理 ✅
-- 📋 **提示词管理器** - 排序、启用/禁用提示词
-- 📥 **SillyTavern 预设导入** - 完整的 prompts + prompt_order 支持
-- 🎯 **自定义提示词** - 添加带角色支持的自定义部分
-- 📍 **深度注入** - 在特定消息深度插入提示词
 
-### 高级设置 ✅
-- 🎛️ **完整采样器控制** - Temperature、Top-P、Top-K、Min-P、Typical-P
-- 🔁 **重复惩罚** - 可配置范围
-- 🎲 **Mirostat** - Mode、Tau、Eta 设置
-- ✂️ **无尾采样** - TFS 和 Top-A 支持
-- 🛑 **停止序列** - 自定义停止标记
+- 📋 Prompt 管理器。
+- 📥 SillyTavern 预设导入。
+- 🎯 自定义 Prompt 区块。
+- 📍 深度注入。
 
-### 主题 ✅
-- 🎨 **18个内置主题** - 7个深色 + 11个浅色主题
-- 🌙 **深色主题** - 默认深色、午夜、森林、日落、玫瑰、海洋、AMOLED
-- ☀️ **浅色主题** - 纯净白、暖奶油、柔和薰衣草、薄荷清新、天空蓝、玫瑰粉、蜜桃、鼠尾草绿、纸张、复古
-- 🖌️ **主题编辑器** - 完整的颜色自定义
+### 高级功能 ✅
 
-### 思维链支持 ✅
-- 🧠 **OpenAI o1/o3** - 解析 `reasoning_content` 字段
-- 💭 **Claude** - 解析 `thinking` 块
-- 🤔 **Gemini 2.0 Flash Thinking** - 解析 `thought` 字段
-- 💾 **推理存储** - 保存消息和滑动的推理内容
-- 📦 **可折叠UI** - 可展开的推理块，支持复制
-- ⏳ **流式显示** - 实时推理，带脉冲动画
+- 🎛️ 完整采样器控制。
+- 🧠 思维链 / reasoning 内容解析与显示。
+- 🏷️ 角色标签。
+- ⌨️ Markdown 输入快捷键。
+- 🎭 表情精灵。
+- 🔊 TTS。
+- 🎤 STT。
+- 🌐 翻译。
+- 🎨 图像生成。
+- 🔍 正则脚本。
+- 🌐 全局和本地变量系统。
+- 💾 聊天备份。
+- ⚙️ 宏系统与斜杠命令。
+- 🖼️ 聊天背景。
 
-### 角色标签 ✅
-- 🏷️ **标签管理** - 创建、编辑、删除标签
-- 🎨 **标签颜色** - 自定义十六进制颜色
-- 😀 **标签图标** - 表情符号图标用于视觉识别
-- 🔗 **角色分配** - 为角色分配多个标签
-- 🔍 **标签过滤** - 按标签过滤角色列表
-
-### Markdown输入 ✅
-- ⌨️ **键盘快捷键** - ⌘B 粗体、⌘I 斜体、⌘U 下划线
-- 📝 **格式化工具栏** - 紧凑的格式化按钮工具栏
-- 🔗 **链接支持** - ⌘K 快速插入链接
-- 💻 **代码块** - 行内代码和代码块快捷键
-
-### 表情精灵 ✅
-- 🎭 **情绪检测** - 从消息中自动检测情绪
-- 📁 **精灵管理** - 每个角色独立的精灵文件夹
-- 🖼️ **15种情绪** - 开心、悲伤、愤怒、惊讶、害怕等
-- ✨ **动画效果** - 平滑的淡入/缩放过渡
-- ⚙️ **可自定义** - 大小、位置、透明度设置
-- 🎬 **动作检测** - 检测 *微笑*、*大笑* 等动作
-
-### 文字转语音 ✅
-- 🔊 **多种提供商** - 系统TTS、ElevenLabs、Azure
-- 🎭 **角色独立语音** - 每个角色不同的语音
-- ▶️ **自动播放** - 自动朗读新消息
-- 🎚️ **语音控制** - 速度、音调、音量调节
-- 📝 **文本清理** - 移除markdown/HTML以获得自然语音
-- 🔄 **消息队列** - 排队多条消息
-
-### 语音转文字 ✅
-- 🎤 **语音输入** - 使用语音口述消息
-- 🌍 **16种语言** - 支持主要语言
-- 🔄 **多种提供商** - 系统STT、Whisper、Azure
-- 📝 **部分结果** - 说话时实时显示文字
-- ⚡ **自动发送** - 说完后自动发送
-- 🔁 **连续模式** - 持续监听多个短语
-
-### 翻译 ✅
-- 🌐 **30+种语言** - 在主要语言之间翻译
-- 🔄 **多种提供商** - Google、DeepL、LibreTranslate
-- 🔀 **自动翻译** - 接收和发送的消息
-- 🔍 **语言检测** - 自动检测源语言
-- 📝 **显示原文** - 在翻译旁显示原文
-- 🔘 **翻译按钮** - 按需翻译消息
-
-### 图像生成 ✅
-- 🎨 **多种提供商** - Stable Diffusion、DALL-E、ComfyUI、Automatic1111
-- 📐 **尺寸预设** - 512x512、768x768、1024x1024等
-- ⚙️ **生成设置** - 步数、CFG比例、采样器选择
-- 🚫 **负面提示词** - 排除不需要的元素
-- 🎲 **采样器选项** - Euler、Euler A、DPM++、DDIM等
-- 🔧 **API配置** - 自定义端点和API密钥
-
-### 正则脚本 ✅
-- 🔍 **查找/替换模式** - 对消息应用正则表达式
-- 📝 **脚本管理** - 创建、编辑、删除、重排序脚本
-- 🎯 **应用位置** - 用户输入、AI输出、斜杠命令
-- 📦 **预设** - 内置预设脚本
-- 🔄 **导入/导出** - 以JSON格式分享脚本
-- 🧪 **测试工具** - 应用前测试模式
-
-### 变量系统 ✅
-- 🌐 **全局变量** - 应用范围的持久存储
-- 💬 **本地变量** - 每个聊天的变量存储
-- 📝 **变量宏** - {{getvar}}、{{setvar}}、{{incvar}}等
-- 🔢 **类型支持** - 数字、字符串、数组、对象
-- ➕ **操作** - 递增、递减、添加、连接
-
-### 聊天备份 ✅
-- 💾 **自动备份** - 可配置间隔（每小时、每天、每周）
-- 📁 **聊天备份** - 单独聊天导出（JSONL）
-- 📦 **完整备份** - 完整数据导出（JSON）
-- 🗑️ **保留策略** - 自动清理旧备份
-- 👁️ **查看/恢复** - 浏览和恢复备份
-
-### 宏系统 ✅
-- `{{user}}` - 当前人设名称
-- `{{char}}` - 角色名称
-- `{{time}}` / `{{date}}` / `{{weekday}}` - 日期/时间宏
-- `{{random:min:max}}` - 随机数生成
-- `{{roll:NdM}}` - 掷骰子
-- `{{idle_duration}}` - 距上次消息的时间
-- `{{lastMessage}}` / `{{lastUserMessage}}` / `{{lastCharMessage}}`
-
-### 斜杠命令 ✅
-- `/continue` - 继续生成
-- `/regenerate` - 重新生成最后一条消息
-- `/swipe` - 导航滑动
-- `/persona` - 切换人设
-- `/sys` - 发送系统消息
-- `/bg` - 更改背景
-- `/help` - 显示命令帮助
-- `/clear` - 清除消息
-- `/edit` - 编辑最后一条消息
-- `/delete` - 删除消息
-- `/bookmark` - 创建书签
-- `/note` - 设置作者注释
-
-### 背景 ✅
-- 🖼️ **自定义背景** - 设置聊天背景
-- 📁 **背景图库** - 管理背景图片
-- 🎚️ **透明度控制** - 调整背景透明度
-- 💬 **每个聊天的背景** - 不同聊天使用不同背景
+---
 
 ## 技术栈
 
+### 当前 Flutter 主项目
+
 | 组件 | 技术 |
-|-----------|------------|
-| UI框架 | Flutter (Dart) |
+|---|---|
+| UI 框架 | Flutter / Dart |
 | 状态管理 | Riverpod |
 | 导航 | go_router |
-| 数据库 | SQLite (drift) |
-| 原生核心 | Rust (通过 FFI) |
-| HTTP客户端 | Dio |
+| 数据库 | SQLite / Drift |
+| 原生核心 | Rust FFI |
+| HTTP 客户端 | Dio |
+| 富文本 / Web | flutter_markdown / flutter_inappwebview |
+
+### HarmonyOS 迁移目标
+
+| 组件 | 技术 |
+|---|---|
+| UI 框架 | ArkTS / ArkUI |
+| 状态管理 | ArkUI 状态装饰器 + 自定义 Store |
+| 数据库 | @ohos.data.relationalStore |
+| 网络 | @ohos.net.http / socket / TLS socket |
+| 流式响应 | SSE parser |
+| 原生桥接 | NAPI + C++ shim + Rust |
+| 构建工具 | DevEco Studio / ohpm |
+
+---
 
 ## 项目结构
 
-```
+```text
 native_tavern/
-├── lib/                    # Flutter/Dart 代码
-│   ├── main.dart          # 入口点
-│   ├── app.dart           # 应用配置
-│   ├── core/              # 核心工具
-│   ├── data/              # 数据层（模型、数据库、仓库）
-│   │   ├── models/        # 数据模型（Character、Chat、Message等）
-│   │   ├── database/      # 使用 Drift 的 SQLite 数据库
-│   │   └── repositories/  # 数据访问层
-│   ├── domain/            # 业务逻辑
-│   │   └── services/      # LLM服务、宏服务等
-│   └── presentation/      # UI层
-│       ├── providers/     # Riverpod 状态管理
-│       ├── screens/       # 应用界面
-│       ├── widgets/       # 可复用组件
-│       └── theme/         # 主题配置
+├── lib/                    # Flutter / Dart 主项目代码
+│   ├── main.dart
+│   ├── app.dart
+│   ├── core/
+│   ├── data/
+│   ├── domain/
+│   └── presentation/
 ├── rust/                   # Rust 原生核心
-│   └── src/
-│       ├── png_parser.rs  # PNG 角色卡片解析
-│       ├── charx_parser.rs # CharX 归档处理
-│       └── models.rs      # 数据模型
 ├── ios/                    # iOS 平台代码
 ├── android/                # Android 平台代码
-└── plans/                  # 架构文档
+├── harmony/                # HarmonyOS 原生迁移代码，开发中
+├── plans/                  # 架构与开发计划
+├── CLAUDE.md               # Claude Code 开发指引
+└── pubspec.yaml
 ```
 
-## 开始使用
+---
+
+## 开始使用：Flutter 版本
 
 ### 前置要求
 
 - Flutter SDK >= 3.16.0
-- Rust 工具链（用于原生核心）
-- Xcode（用于 iOS 开发）
-- Android Studio（用于 Android 开发）
+- Rust 工具链，部分原生能力需要
+- Xcode，用于 iOS 开发
+- Android Studio，用于 Android 开发
 
-### 安装
+### 安装运行
 
-1. **克隆仓库**
-   ```bash
-   git clone https://github.com/yourusername/NativeTavern.git
-   cd NativeTavern
-   ```
+```bash
+git clone https://github.com/cnChenKai/NativeTavern.git
+cd NativeTavern
+flutter pub get
+flutter run
+```
 
-2. **安装 Flutter 依赖**
-   ```bash
-   flutter pub get
-   ```
+构建 Rust 核心，按当前平台需求执行：
 
-3. **构建 Rust 核心**（可选，用于原生功能）
-   ```bash
-   cd rust
-   cargo build --release
-   ```
+```bash
+cd rust
+cargo build --release
+```
 
-4. **运行应用**
-   ```bash
-   flutter run
-   ```
+---
+
+## 开始使用：HarmonyOS 版本
+
+HarmonyOS 版本仍处于 Alpha 开发阶段。建议使用 DevEco Studio 打开 `harmony/` 目录，按 DevEco 工程提示安装 HarmonyOS SDK、ohpm 依赖和模拟器/真机调试环境。
+
+当前建议工具链：
+
+- DevEco Studio 5.0+
+- HarmonyOS SDK / OpenHarmony SDK，对齐目标 API
+- Node.js 18+
+- Rust 1.75+
+- 鸿蒙真机或模拟器
+
+开发前请阅读：
+
+```text
+CLAUDE.md
+```
+
+---
 
 ## SillyTavern 兼容性
 
 ### 支持的导入格式
 
-| 格式 | 描述 | 状态 |
-|--------|-------------|--------|
-| PNG V2 | 带有 `chara` tEXt 块的角色卡片 | ✅ 支持 |
-| PNG V3 | 带有 `ccv3` tEXt 块的角色卡片 | ✅ 支持 |
-| CharX | 包含 card.json + 资源的 ZIP 归档 | ✅ 支持 |
-| JSON | 原始角色 JSON 导出 | ✅ 支持 |
-| ST预设 | SillyTavern AI 预设 JSON | ✅ 支持 |
+| 格式 | 描述 | Flutter 主项目 | HarmonyOS 目标 |
+|---|---|---:|---:|
+| PNG V2 | 带 `chara` tEXt 块的角色卡 | ✅ | 🚧 Alpha |
+| PNG V3 | 带 `ccv3` tEXt 块的角色卡 | ✅ | 🚧 Alpha |
+| CharX | 包含 card.json 和资源的 ZIP 归档 | ✅ | ⏳ Beta |
+| JSON | 原始角色 JSON 导出 | ✅ | 🚧 Alpha |
+| ST 预设 | SillyTavern AI 预设 JSON | ✅ | ⏳ Beta |
 
 ### 支持的导出格式
 
-| 格式 | 描述 | 状态 |
-|--------|-------------|--------|
-| PNG V3 | 导出为带有嵌入元数据的 PNG | ✅ 支持 |
-| CharX | 导出包含所有资源 | ✅ 支持 |
-| JSON | 原始导出用于备份 | ✅ 支持 |
+| 格式 | Flutter 主项目 | HarmonyOS 目标 |
+|---|---:|---:|
+| PNG V3 | ✅ | ⏳ Beta |
+| CharX | ✅ | ⏳ Beta |
+| JSON | ✅ | 🚧 Alpha |
+| 本地备份 | ✅ | 🚧 Alpha |
 
-## 开发阶段
+---
+
+## 开发路线
+
+### Flutter 主项目
 
 | 阶段 | 功能 | 状态 |
-|-------|----------|--------|
-| **1-2** | 核心基础、聊天核心 | ✅ 完成 |
-| **3A** | 消息操作、人设、指令模式 | ✅ 完成 |
-| **3B** | 世界信息、CharX完整导入、角色编辑器 | ✅ 完成 |
-| **4A** | 群聊、聊天书签 | ✅ 完成 |
-| **4B** | 宏系统 | ✅ 完成 |
-| **5** | 作者注释、提示词管理、高级设置、快捷回复、主题、统计、思维链 | ✅ 完成 |
-| **6** | 斜杠命令、标签、背景、HTML/Markdown | ✅ 完成 |
-| **7** | 表情精灵、TTS、STT、翻译、图像生成 | ✅ 完成 |
-| **8** | 正则脚本、变量、聊天备份 | ✅ 完成 |
-| **9** | 扩展、RAG/向量 | ⏳ 计划中 |
+|---|---|---|
+| 1-2 | 核心基础、聊天核心 | ✅ 完成 |
+| 3A | 消息操作、人设、指令模式 | ✅ 完成 |
+| 3B | 世界信息、CharX 完整导入、角色编辑器 | ✅ 完成 |
+| 4A | 群聊、聊天书签 | ✅ 完成 |
+| 4B | 宏系统 | ✅ 完成 |
+| 5 | 作者注释、提示词管理、高级设置、快捷回复、主题、统计、思维链 | ✅ 完成 |
+| 6 | 斜杠命令、标签、背景、HTML/Markdown | ✅ 完成 |
+| 7 | 表情精灵、TTS、STT、翻译、图像生成 | ✅ 完成 |
+| 8 | 正则脚本、变量、聊天备份 | ✅ 完成 |
+| 9 | 扩展、RAG/向量 | ⏳ 计划中 |
+
+### HarmonyOS 原生版本
+
+| 阶段 | 目标 | 状态 |
+|---|---|---|
+| MVP 验证 | ArkTS UI、LLM、SSE、SQLite、Rust NAPI 技术验证 | ✅ 已验证 |
+| Alpha | 可真机运行的基础聊天客户端 | 🚧 开发中 |
+| Beta | Prompt、World Info、CharX、群聊、消息高级操作 | ⏳ 计划中 |
+| Release | 打磨、测试、性能优化、上架准备 | ⏳ 计划中 |
+
+---
 
 ## 与 SillyTavern 功能对比
 
-| 功能 | SillyTavern Web | NativeTavern | 状态 |
-|---------|-----------------|--------------|--------|
-| 角色导入/导出 | ✅ | ✅ | 完全对等 |
-| LLM提供商 | 10+ | 6 | 核心提供商 |
-| 流式传输 | ✅ | ✅ | 完全对等 |
-| 消息操作 | ✅ | ✅ | 完全对等 |
-| 群聊 | ✅ | ✅ | 完全对等 |
-| 世界信息 | ✅ | ✅ | 完全对等 |
-| 提示词管理 | ✅ | ✅ | 完全对等 |
-| 宏 | ✅ | ✅ | 完全对等 |
-| 主题 | ✅ | ✅ | 18个内置 |
-| 斜杠命令 | ✅ | ✅ | 完全对等 |
-| 背景 | ✅ | ✅ | 完全对等 |
-| HTML/Markdown | ✅ | ✅ | 完全对等 |
-| 思维链 | ✅ | ✅ | 完全对等 |
-| 角色标签 | ✅ | ✅ | 完全对等 |
-| 推理UI | ✅ | ✅ | 完全对等 |
-| Markdown快捷键 | ✅ | ✅ | 完全对等 |
-| 表情精灵 | ✅ | ✅ | 完全对等 |
-| TTS | ✅ | ✅ | 完全对等 |
-| STT | ✅ | ✅ | 完全对等 |
-| 翻译 | ✅ | ✅ | 完全对等 |
-| 图像生成 | ✅ | ✅ | 完全对等 |
-| 正则脚本 | ✅ | ✅ | 完全对等 |
-| 变量系统 | ✅ | ✅ | 完全对等 |
-| 聊天备份 | ✅ | ✅ | 完全对等 |
-| 扩展 | ✅ | ⏳ | 计划中 |
+| 功能 | SillyTavern Web | NativeTavern Flutter | HarmonyOS 目标 |
+|---|---:|---:|---:|
+| 角色导入/导出 | ✅ | ✅ | 🚧 |
+| LLM Provider | 10+ | 核心 Provider | 🚧 |
+| 流式传输 | ✅ | ✅ | 🚧 Alpha |
+| 消息操作 | ✅ | ✅ | ⏳ Beta |
+| 群聊 | ✅ | ✅ | ⏳ Beta |
+| World Info | ✅ | ✅ | ⏳ Beta |
+| Prompt 管理 | ✅ | ✅ | ⏳ Beta |
+| 宏 | ✅ | ✅ | ⏳ Beta |
+| 主题 | ✅ | ✅ | ⏳ Beta |
+| 斜杠命令 | ✅ | ✅ | ⏳ Beta |
+| HTML / Markdown | ✅ | ✅ | 🚧 Alpha |
+| TTS / STT | ✅ | ✅ | ⏳ Later |
+| 翻译 | ✅ | ✅ | ⏳ Later |
+| 图像生成 | ✅ | ✅ | ⏳ Later |
+| 正则脚本 | ✅ | ✅ | ⏳ Beta |
+| 变量系统 | ✅ | ✅ | ⏳ Beta |
+| 聊天备份 | ✅ | ✅ | 🚧 Alpha |
+| 扩展 | ✅ | ⏳ | ⏳ Later |
 
-**总体完成度：约98%** 的核心 SillyTavern 功能
+---
+
+## 使用 Claude Code 开发
+
+本仓库已经准备了 [`CLAUDE.md`](CLAUDE.md)，用于指导 Claude Code 进行 HarmonyOS 原生迁移。
+
+推荐流程：
+
+1. 在 Claude Code 中打开本仓库。
+2. 先让 Claude 阅读 `CLAUDE.md`、`README.md`、`pubspec.yaml` 和仓库结构。
+3. 要求 Claude 先做仓库体检，不要立即大规模重构。
+4. 按 `CLAUDE.md` 中的 Alpha 顺序逐步实现。
+5. 每轮任务结束后要求 Claude 报告文件变更、检查命令、已知限制和下一步。
+
+推荐开场提示词见 `CLAUDE.md` 第 0 节。
+
+---
 
 ## 许可证
 
 AGPL-3.0 - 详见 [LICENSE](LICENSE)。
+
+---
 
 ## 致谢
 
 - [SillyTavern](https://github.com/SillyTavern/SillyTavern) - 原始 Web 项目
 - [Flutter](https://flutter.dev) - 跨平台 UI 框架
 - [Riverpod](https://riverpod.dev) - 状态管理
+- HarmonyOS / OpenHarmony 开发生态
