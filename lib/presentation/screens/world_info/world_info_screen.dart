@@ -883,8 +883,28 @@ class _WorldInfoEntriesScreenState extends ConsumerState<WorldInfoEntriesScreen>
           : ReorderableListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _worldInfo.entries.length,
-              onReorder: (oldIndex, newIndex) {
-                // TODO: Implement reordering
+              onReorder: (oldIndex, newIndex) async {
+                if (oldIndex < newIndex) {
+                  newIndex -= 1;
+                }
+
+                final entries = List<WorldInfoEntry>.from(_worldInfo.entries);
+                final item = entries.removeAt(oldIndex);
+                entries.insert(newIndex, item);
+
+                // Update insertion order
+                final updatedEntries = <WorldInfoEntry>[];
+                for (var i = 0; i < entries.length; i++) {
+                  updatedEntries.add(entries[i].copyWith(insertionOrder: i));
+                }
+
+                // Locally update state for immediate feedback
+                setState(() {
+                  _worldInfo = _worldInfo.copyWith(entries: updatedEntries);
+                });
+
+                // Persist changes
+                await ref.read(worldInfoNotifierProvider.notifier).updateEntriesOrder(updatedEntries);
               },
               itemBuilder: (context, index) {
                 final entry = _worldInfo.entries[index];

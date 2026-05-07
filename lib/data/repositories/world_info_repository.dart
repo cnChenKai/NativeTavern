@@ -283,6 +283,29 @@ class WorldInfoRepository {
         .go();
   }
 
+  /// Update multiple entries' order
+  Future<void> updateEntriesOrder(List<models.WorldInfoEntry> entries) async {
+    if (entries.isEmpty) return;
+
+    await _db.batch((batch) {
+      for (final entry in entries) {
+        batch.update(
+          _db.worldInfoEntries,
+          WorldInfoEntriesCompanion(
+            insertionOrder: Value(entry.insertionOrder),
+          ),
+          where: (t) => t.id.equals(entry.id),
+        );
+      }
+    });
+
+    // Update world info modified time
+    final worldInfoId = entries.first.worldInfoId;
+    await (_db.update(_db.worldInfos)
+          ..where((t) => t.id.equals(worldInfoId)))
+        .write(WorldInfosCompanion(modifiedAt: Value(DateTime.now())));
+  }
+
   /// Find matching entries for given text
   /// Note: This method finds entries that match keywords in the text.
   /// Constant entries (entries with constant=true OR entries with no keys) are handled
